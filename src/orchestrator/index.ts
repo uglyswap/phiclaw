@@ -19,6 +19,8 @@ import { Router, type RouteResult } from "./router.js";
 import { Executor, type LLMCaller, NOOP_LLM_CALLER } from "./executor.js";
 import { Compiler } from "./compiler.js";
 import { PromptEngineer, type PromptEngineerConfig, type EngineerResult } from "./prompt-engineer.js";
+import { MemoryStore, type MemoryConfig } from "./memory.js";
+import { AutoLearningEngine, type AutoLearningConfig } from "./auto-learning.js";
 import type {
   OrchestrationPlan,
   OrchestrationResult,
@@ -40,6 +42,12 @@ export type { LLMCaller } from "./executor.js";
 export { Compiler } from "./compiler.js";
 export { PromptEngineer } from "./prompt-engineer.js";
 export type { PromptEngineerConfig, EngineerResult, PromptIntent } from "./prompt-engineer.js";
+export { MemoryStore } from "./memory.js";
+export type { MemoryConfig, OrchestrationMemory, LearningEntry as MemoryLearningEntry } from "./memory.js";
+export { Ontology, getDefaultOntology } from "./ontology.js";
+export type { Entity, Relation, EntityType, RelationType } from "./ontology.js";
+export { AutoLearningEngine } from "./auto-learning.js";
+export type { AutoLearningConfig, Learning, LearningCategory, AgentRecommendation } from "./auto-learning.js";
 export * from "./types.js";
 
 // ─── Orchestrator Class ────────────────────────────────────
@@ -65,6 +73,8 @@ export class Orchestrator {
   private executor: Executor;
   private compiler: Compiler;
   private promptEngineer: PromptEngineer;
+  private memoryStore: MemoryStore;
+  private autoLearning: AutoLearningEngine;
   private agentLoader: AgentLoader;
   private config: OrchestratorConfig;
   private promptEngineerConfig: PromptEngineerConfig;
@@ -76,6 +86,8 @@ export class Orchestrator {
     llmCaller?: LLMCaller,
     config?: Partial<OrchestratorConfig>,
     promptEngineerConfig?: Partial<PromptEngineerConfig>,
+    memoryConfig?: Partial<MemoryConfig>,
+    autoLearningConfig?: Partial<AutoLearningConfig>,
   ) {
     this.agentLoader = agentLoader;
     this.config = { ...DEFAULT_ORCHESTRATOR_CONFIG, ...config };
@@ -95,6 +107,8 @@ export class Orchestrator {
     this.executor = new Executor(agentLoader, caller, this.config);
     this.compiler = new Compiler(agentLoader, caller);
     this.promptEngineer = new PromptEngineer(agentLoader, caller, this.promptEngineerConfig);
+    this.memoryStore = new MemoryStore(memoryConfig);
+    this.autoLearning = new AutoLearningEngine(autoLearningConfig);
 
     // Wire up event forwarding from executor
     this.executor.onEvent((event) => this.emit(event));
@@ -192,8 +206,10 @@ export class Orchestrator {
       options?.intelligentCompilation ?? false,
     );
 
-    // Step 6: Record in history
+    // Step 6: Record in memory and learn
     this.history.push(result);
+    this.memoryStore.recordOrchestration(result);
+    this.autoLearning.processOrchestrationResult(result);
 
     // Clean up per-orchestration handler
     if (options?.onEvent) {
@@ -301,6 +317,27 @@ export class Orchestrator {
    */
   async engineerPrompt(rawPrompt: string): Promise<EngineerResult> {
     return this.promptEngineer.engineer(rawPrompt);
+  }
+
+  /**
+   * Get the memory store instance.
+   */
+  getMemory(): MemoryStore {
+    return this.memoryStore;
+  }
+
+  /**
+   * Get the auto-learning engine instance.
+   */
+  getAutoLearning(): AutoLearningEngine {
+    return this.autoLearning;
+  }
+
+  /**
+   * Record a user correction for auto-learning.
+   */
+  recordCorrection(correction: string, context?: { orchestrationId?: string; taskId?: string; agentIds?: string[] }) {
+    return this.autoLearning.recordUserCorrection(correction, context ?? {});
   }
 
   /**
