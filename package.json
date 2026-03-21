@@ -1,7 +1,7 @@
 {
-  "name": "openclaw",
-  "version": "2026.2.3",
-  "description": "WhatsApp gateway CLI (Baileys web) with Pi RPC agent",
+  "name": "phiclaw",
+  "version": "1.0.0",
+  "description": "PhiClaw \u2014 AI Agent Orchestrator powered by 144+ specialized agents. Fork of OpenClaw with multi-agent planning, routing, execution, and compilation.",
   "keywords": [],
   "license": "MIT",
   "author": "",
@@ -240,5 +240,9 @@
       "apps/macos/.build/**",
       "dist/OpenClaw.app/**"
     ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uglyswap/phiclaw.git"
   }
 }
