@@ -1,0 +1,42 @@
+{
+  "$schema": "./phiclaw.config.schema.json",
+  "orchestrator": {
+    "enabled": true,
+    "maxConcurrentTasks": 4,
+    "defaultModel": "anthropic/claude-sonnet-4-20250514",
+    "planBeforeExecute": true,
+    "maxTasksPerPlan": 10,
+    "maxRetriesPerTask": 2,
+    "taskTimeoutMs": 120000
+  },
+  "agents": {
+    "directory": "./agents",
+    "enabledDivisions": ["all"],
+    "disabledAgents": [],
+    "customAgentsDirectory": "./custom-agents"
+  },
+  "promptEngineer": {
+    "enabled": true,
+    "model": "anthropic/claude-sonnet-4-20250514",
+    "maxPromptLength": 4000,
+    "includeAgentSuggestions": true,
+    "useLLM": true
+  },
+  "memory": {
+    "storageDir": ".phiclaw/memory",
+    "maxEntries": 1000,
+    "persistToDisk": true
+  },
+  "autoLearning": {
+    "enabled": true,
+    "storageDir": ".phiclaw/learnings",
+    "maxLearnings": 500,
+    "learnFromFailures": true,
+    "learnFromSuccesses": true,
+    "trackPerformance": true
+  },
+  "ontology": {
+    "storageDir": ".phiclaw",
+    "filePath": ".phiclaw/ontology.jsonl"
+  }
+}
