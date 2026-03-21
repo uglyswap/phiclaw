@@ -1,0 +1,338 @@
+{
+  "learnings": [
+    {
+      "id": "learn-1774092759274-xry0",
+      "timestamp": "2026-03-21T11:32:39.274Z",
+      "category": "task-success-pattern",
+      "severity": "info",
+      "title": "Success: French Consulting Market Navigator: Analyze and execute aspe",
+      "description": "Task \"French Consulting Market Navigator: Analyze and execute aspects of \"Launch proprietaire.net in the French market\" within your expertise (specialized)\" completed successfully by French Consulting Market Navigator in 2ms.",
+      "context": {
+        "orchestrationId": "plan-53eeec2b",
+        "objective": "Launch proprietaire.net in the French market",
+        "taskId": "task-1",
+        "agentIds": [
+          "french-consulting-market-navigator"
+        ],
+        "durationMs": 2
+      },
+      "tags": [
+        "success",
+        "french consulting market navigator"
+      ]
+    },
+    {
+      "id": "learn-1774092759275-q9mi",
+      "timestamp": "2026-03-21T11:32:39.275Z",
+      "category": "task-success-pattern",
+      "severity": "info",
+      "title": "Success: Healthcare Marketing Compliance Specialist: Analyze and exec",
+      "description": "Task \"Healthcare Marketing Compliance Specialist: Analyze and execute aspects of \"Launch proprietaire.net in the French market\" within your expertise (specialized)\" completed successfully by Healthcare Marketing Compliance Specialist in 3ms.",
+      "context": {
+        "orchestrationId": "plan-53eeec2b",
+        "objective": "Launch proprietaire.net in the French market",
+        "taskId": "task-2",
+        "agentIds": [
+          "healthcare-marketing-compliance-specialist"
+        ],
+        "durationMs": 3
+      },
+      "tags": [
+        "success",
+        "healthcare marketing compliance specialist"
+      ]
+    },
+    {
+      "id": "learn-1774092759275-j23w",
+      "timestamp": "2026-03-21T11:32:39.275Z",
+      "category": "task-success-pattern",
+      "severity": "info",
+      "title": "Success: Instagram Curator: Analyze and execute aspects of \"Launch pr",
+      "description": "Task \"Instagram Curator: Analyze and execute aspects of \"Launch proprietaire.net in the French market\" within your expertise (marketing)\" completed successfully by Instagram Curator in 2ms.",
+      "context": {
+        "orchestrationId": "plan-53eeec2b",
+        "objective": "Launch proprietaire.net in the French market",
+        "taskId": "task-3",
+        "agentIds": [
+          "instagram-curator"
+        ],
+        "durationMs": 2
+      },
+      "tags": [
+        "success",
+        "instagram curator"
+      ]
+    },
+    {
+      "id": "learn-1774092759275-vfqw",
+      "timestamp": "2026-03-21T11:32:39.275Z",
+      "category": "task-success-pattern",
+      "severity": "info",
+      "title": "Success: Douyin Strategist: Analyze and execute aspects of \"Launch pr",
+      "description": "Task \"Douyin Strategist: Analyze and execute aspects of \"Launch proprietaire.net in the French market\" within your expertise (marketing)\" completed successfully by Douyin Strategist in 1ms.",
+      "context": {
+        "orchestrationId": "plan-53eeec2b",
+        "objective": "Launch proprietaire.net in the French market",
+        "taskId": "task-4",
+        "agentIds": [
+          "douyin-strategist"
+        ],
+        "durationMs": 1
+      },
+      "tags": [
+        "success",
+        "douyin strategist"
+      ]
+    },
+    {
+      "id": "learn-1774092759275-5jor",
+      "timestamp": "2026-03-21T11:32:39.275Z",
+      "category": "task-success-pattern",
+      "severity": "info",
+      "title": "Success: Short-Video Editing Coach: Analyze and execute aspects of \"L",
+      "description": "Task \"Short-Video Editing Coach: Analyze and execute aspects of \"Launch proprietaire.net in the French market\" within your expertise (marketing)\" completed successfully by Short-Video Editing Coach in 1ms.",
+      "context": {
+        "orchestrationId": "plan-53eeec2b",
+        "objective": "Launch proprietaire.net in the French market",
+        "taskId": "task-5",
+        "agentIds": [
+          "short-video-editing-coach"
+        ],
+        "durationMs": 1
+      },
+      "tags": [
+        "success",
+        "short-video editing coach"
+      ]
+    },
+    {
+      "id": "learn-1774092759275-bgwq",
+      "timestamp": "2026-03-21T11:32:39.275Z",
+      "category": "task-success-pattern",
+      "severity": "info",
+      "title": "Success: Compile all agent outputs into a unified deliverable",
+      "description": "Task \"Compile all agent outputs into a unified deliverable\" completed successfully by Data Consolidation Agent in 1ms.",
+      "context": {
+        "orchestrationId": "plan-53eeec2b",
+        "objective": "Launch proprietaire.net in the French market",
+        "taskId": "task-6",
+        "agentIds": [
+          "data-consolidation-agent"
+        ],
+        "durationMs": 1
+      },
+      "tags": [
+        "success",
+        "data consolidation agent"
+      ]
+    },
+    {
+      "id": "learn-1774092759306-5nmo",
+      "timestamp": "2026-03-21T11:32:39.306Z",
+      "category": "task-success-pattern",
+      "severity": "info",
+      "title": "Success: Test Results Analyzer: Analyze and execute aspects of \"Test ",
+      "description": "Task \"Test Results Analyzer: Analyze and execute aspects of \"Test event emission\" within your expertise (testing)\" completed successfully by Test Results Analyzer in 2ms.",
+      "context": {
+        "orchestrationId": "plan-e1dc15db",
+        "objective": "Test event emission",
+        "taskId": "task-1",
+        "agentIds": [
+          "test-results-analyzer"
+        ],
+        "durationMs": 2
+      },
+      "tags": [
+        "success",
+        "test results analyzer"
+      ]
+    },
+    {
+      "id": "learn-1774092759306-45nx",
+      "timestamp": "2026-03-21T11:32:39.306Z",
+      "category": "task-success-pattern",
+      "severity": "info",
+      "title": "Success: API Tester: Analyze and execute aspects of \"Test event emiss",
+      "description": "Task \"API Tester: Analyze and execute aspects of \"Test event emission\" within your expertise (testing)\" completed successfully by API Tester in 8ms.",
+      "context": {
+        "orchestrationId": "plan-e1dc15db",
+        "objective": "Test event emission",
+        "taskId": "task-2",
+        "agentIds": [
+          "api-tester"
+        ],
+        "durationMs": 8
+      },
+      "tags": [
+        "success",
+        "api tester"
+      ]
+    },
+    {
+      "id": "learn-1774092759306-j8ui",
+      "timestamp": "2026-03-21T11:32:39.306Z",
+      "category": "task-success-pattern",
+      "severity": "info",
+      "title": "Success: Accessibility Auditor: Analyze and execute aspects of \"Test ",
+      "description": "Task \"Accessibility Auditor: Analyze and execute aspects of \"Test event emission\" within your expertise (testing)\" completed successfully by Accessibility Auditor in 7ms.",
+      "context": {
+        "orchestrationId": "plan-e1dc15db",
+        "objective": "Test event emission",
+        "taskId": "task-3",
+        "agentIds": [
+          "accessibility-auditor"
+        ],
+        "durationMs": 7
+      },
+      "tags": [
+        "success",
+        "accessibility auditor"
+      ]
+    },
+    {
+      "id": "learn-1774092759306-0kxa",
+      "timestamp": "2026-03-21T11:32:39.306Z",
+      "category": "task-success-pattern",
+      "severity": "info",
+      "title": "Success: Tool Evaluator: Analyze and execute aspects of \"Test event e",
+      "description": "Task \"Tool Evaluator: Analyze and execute aspects of \"Test event emission\" within your expertise (testing)\" completed successfully by Tool Evaluator in 6ms.",
+      "context": {
+        "orchestrationId": "plan-e1dc15db",
+        "objective": "Test event emission",
+        "taskId": "task-4",
+        "agentIds": [
+          "tool-evaluator"
+        ],
+        "durationMs": 6
+      },
+      "tags": [
+        "success",
+        "tool evaluator"
+      ]
+    },
+    {
+      "id": "learn-1774092759306-34y1",
+      "timestamp": "2026-03-21T11:32:39.306Z",
+      "category": "task-success-pattern",
+      "severity": "info",
+      "title": "Success: Performance Benchmarker: Analyze and execute aspects of \"Tes",
+      "description": "Task \"Performance Benchmarker: Analyze and execute aspects of \"Test event emission\" within your expertise (testing)\" completed successfully by Performance Benchmarker in 0ms.",
+      "context": {
+        "orchestrationId": "plan-e1dc15db",
+        "objective": "Test event emission",
+        "taskId": "task-5",
+        "agentIds": [
+          "performance-benchmarker"
+        ],
+        "durationMs": 0
+      },
+      "tags": [
+        "success",
+        "performance benchmarker"
+      ]
+    },
+    {
+      "id": "learn-1774092759306-vu79",
+      "timestamp": "2026-03-21T11:32:39.306Z",
+      "category": "task-success-pattern",
+      "severity": "info",
+      "title": "Success: Compile all agent outputs into a unified deliverable",
+      "description": "Task \"Compile all agent outputs into a unified deliverable\" completed successfully by Data Consolidation Agent in 0ms.",
+      "context": {
+        "orchestrationId": "plan-e1dc15db",
+        "objective": "Test event emission",
+        "taskId": "task-6",
+        "agentIds": [
+          "data-consolidation-agent"
+        ],
+        "durationMs": 0
+      },
+      "tags": [
+        "success",
+        "data consolidation agent"
+      ]
+    }
+  ],
+  "agentSuccessRates": {
+    "french-consulting-market-navigator": {
+      "success": 1,
+      "total": 1
+    },
+    "healthcare-marketing-compliance-specialist": {
+      "success": 1,
+      "total": 1
+    },
+    "instagram-curator": {
+      "success": 1,
+      "total": 1
+    },
+    "douyin-strategist": {
+      "success": 1,
+      "total": 1
+    },
+    "short-video-editing-coach": {
+      "success": 1,
+      "total": 1
+    },
+    "data-consolidation-agent": {
+      "success": 2,
+      "total": 2
+    },
+    "test-results-analyzer": {
+      "success": 1,
+      "total": 1
+    },
+    "api-tester": {
+      "success": 1,
+      "total": 1
+    },
+    "accessibility-auditor": {
+      "success": 1,
+      "total": 1
+    },
+    "tool-evaluator": {
+      "success": 1,
+      "total": 1
+    },
+    "performance-benchmarker": {
+      "success": 1,
+      "total": 1
+    }
+  },
+  "taskPatterns": {
+    "french consulting market navigator analyze": [
+      "french-consulting-market-navigator"
+    ],
+    "healthcare marketing compliance specialist analyze": [
+      "healthcare-marketing-compliance-specialist"
+    ],
+    "instagram curator analyze execute aspects": [
+      "instagram-curator"
+    ],
+    "douyin strategist analyze execute aspects": [
+      "douyin-strategist"
+    ],
+    "shortvideo editing coach analyze execute": [
+      "short-video-editing-coach"
+    ],
+    "compile agent outputs into unified": [
+      "data-consolidation-agent"
+    ],
+    "test results analyzer analyze execute": [
+      "test-results-analyzer"
+    ],
+    "tester analyze execute aspects test": [
+      "api-tester"
+    ],
+    "accessibility auditor analyze execute aspects": [
+      "accessibility-auditor"
+    ],
+    "tool evaluator analyze execute aspects": [
+      "tool-evaluator"
+    ],
+    "performance benchmarker analyze execute aspects": [
+      "performance-benchmarker"
+    ]
+  },
+  "savedAt": "2026-03-21T11:32:39.306Z"
+}

@@ -572,6 +572,69 @@ function buildChatCommands(): ChatCommandDefinition[] {
         },
       ],
     }),
+    // ── PhiClaw orchestration commands ──
+    defineChatCommand({
+      key: "orchestrate",
+      nativeName: "orchestrate",
+      description: "Toggle orchestrator on/off.",
+      textAlias: "/orchestrate",
+      category: "management",
+      args: [
+        {
+          name: "state",
+          description: "on or off",
+          type: "string",
+          choices: ["on", "off"],
+        },
+      ],
+      argsMenu: "auto",
+    }),
+    defineChatCommand({
+      key: "promptengineer",
+      nativeName: "promptengineer",
+      description: "Toggle prompt engineer on/off.",
+      textAlias: "/promptengineer",
+      category: "management",
+      args: [
+        {
+          name: "state",
+          description: "on or off",
+          type: "string",
+          choices: ["on", "off"],
+        },
+      ],
+      argsMenu: "auto",
+    }),
+    defineChatCommand({
+      key: "agents-list",
+      nativeName: "agents",
+      description: "List all agents or agents in a division.",
+      textAlias: "/agents",
+      category: "status",
+      args: [
+        {
+          name: "division",
+          description: "Division name (optional)",
+          type: "string",
+        },
+      ],
+    }),
+    defineChatCommand({
+      key: "agent-profile",
+      nativeName: "agent",
+      description: "Show detailed profile of an agent.",
+      textAlias: "/agent",
+      category: "status",
+      args: [
+        {
+          name: "name",
+          description: "Agent name or id",
+          type: "string",
+          required: true,
+          captureRemaining: true,
+        },
+      ],
+    }),
     ...listChannelDocks()
       .filter((dock) => dock.capabilities.nativeCommands)
       .map((dock) => defineDockCommand(dock)),

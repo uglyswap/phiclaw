@@ -97,6 +97,22 @@ export type OpenClawConfig = {
   talk?: TalkConfig;
   gateway?: GatewayConfig;
   memory?: MemoryConfig;
+  orchestrator?: {
+    enabled?: boolean;
+    maxConcurrentTasks?: number;
+    defaultModel?: string;
+    planBeforeExecute?: boolean;
+    maxTasksPerPlan?: number;
+    maxRetriesPerTask?: number;
+    taskTimeoutMs?: number;
+  };
+  promptEngineer?: {
+    enabled?: boolean;
+    model?: string;
+    maxPromptLength?: number;
+    includeAgentSuggestions?: boolean;
+    useLLM?: boolean;
+  };
 };
 
 export type ConfigValidationIssue = {

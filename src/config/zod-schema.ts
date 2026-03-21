@@ -508,6 +508,28 @@ export const OpenClawSchema = z
       .strict()
       .optional(),
     memory: MemorySchema,
+    orchestrator: z
+      .object({
+        enabled: z.boolean().optional(),
+        maxConcurrentTasks: z.number().int().nonnegative().optional(),
+        defaultModel: z.string().optional(),
+        planBeforeExecute: z.boolean().optional(),
+        maxTasksPerPlan: z.number().int().nonnegative().optional(),
+        maxRetriesPerTask: z.number().int().nonnegative().optional(),
+        taskTimeoutMs: z.number().int().nonnegative().optional(),
+      })
+      .strict()
+      .optional(),
+    promptEngineer: z
+      .object({
+        enabled: z.boolean().optional(),
+        model: z.string().optional(),
+        maxPromptLength: z.number().int().nonnegative().optional(),
+        includeAgentSuggestions: z.boolean().optional(),
+        useLLM: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
     skills: z
       .object({
         allowBundled: z.array(z.string()).optional(),
