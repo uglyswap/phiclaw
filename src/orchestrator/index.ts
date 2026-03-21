@@ -18,6 +18,7 @@ import { Planner } from "./planner.js";
 import { Router, type RouteResult } from "./router.js";
 import { Executor, type LLMCaller, NOOP_LLM_CALLER } from "./executor.js";
 import { Compiler } from "./compiler.js";
+import { PromptEngineer, type PromptEngineerConfig, type EngineerResult } from "./prompt-engineer.js";
 import type {
   OrchestrationPlan,
   OrchestrationResult,
@@ -37,6 +38,8 @@ export type { RouteResult } from "./router.js";
 export { Executor, NOOP_LLM_CALLER } from "./executor.js";
 export type { LLMCaller } from "./executor.js";
 export { Compiler } from "./compiler.js";
+export { PromptEngineer } from "./prompt-engineer.js";
+export type { PromptEngineerConfig, EngineerResult, PromptIntent } from "./prompt-engineer.js";
 export * from "./types.js";
 
 // ─── Orchestrator Class ────────────────────────────────────
@@ -52,6 +55,8 @@ export interface OrchestrateOptions {
   maxTasks?: number;
   /** Custom event handler for this orchestration */
   onEvent?: OrchestratorEventHandler;
+  /** Skip prompt engineering step */
+  skipPromptEngineering?: boolean;
 }
 
 export class Orchestrator {
@@ -59,8 +64,10 @@ export class Orchestrator {
   private router: Router;
   private executor: Executor;
   private compiler: Compiler;
+  private promptEngineer: PromptEngineer;
   private agentLoader: AgentLoader;
   private config: OrchestratorConfig;
+  private promptEngineerConfig: PromptEngineerConfig;
   private eventHandlers: OrchestratorEventHandler[] = [];
   private history: OrchestrationResult[] = [];
 
@@ -68,9 +75,18 @@ export class Orchestrator {
     agentLoader: AgentLoader,
     llmCaller?: LLMCaller,
     config?: Partial<OrchestratorConfig>,
+    promptEngineerConfig?: Partial<PromptEngineerConfig>,
   ) {
     this.agentLoader = agentLoader;
     this.config = { ...DEFAULT_ORCHESTRATOR_CONFIG, ...config };
+    this.promptEngineerConfig = {
+      enabled: true,
+      model: this.config.defaultModel,
+      maxPromptLength: 4000,
+      includeAgentSuggestions: true,
+      useLLM: true,
+      ...promptEngineerConfig,
+    };
 
     const caller = llmCaller ?? NOOP_LLM_CALLER;
 
@@ -78,6 +94,7 @@ export class Orchestrator {
     this.router = new Router(agentLoader);
     this.executor = new Executor(agentLoader, caller, this.config);
     this.compiler = new Compiler(agentLoader, caller);
+    this.promptEngineer = new PromptEngineer(agentLoader, caller, this.promptEngineerConfig);
 
     // Wire up event forwarding from executor
     this.executor.onEvent((event) => this.emit(event));
@@ -102,13 +119,31 @@ export class Orchestrator {
     llmPlanOutput?: string,
     options?: OrchestrateOptions,
   ): Promise<OrchestrationResult> {
+    // Step 0: Prompt Engineering (if enabled and not skipped)
+    let engineeredObjective = objective;
+    let engineerResult: EngineerResult | null = null;
+
+    if (this.promptEngineerConfig.enabled && !options?.skipPromptEngineering) {
+      engineerResult = await this.promptEngineer.engineer(objective);
+      engineeredObjective = engineerResult.engineeredPrompt;
+    }
+
     // Step 1: Create the plan
     let plan: OrchestrationPlan;
 
     if (llmPlanOutput) {
-      plan = this.planner.parsePlanResponse(objective, llmPlanOutput);
+      plan = this.planner.parsePlanResponse(engineeredObjective, llmPlanOutput);
     } else {
-      plan = this.planner.createFallbackPlan(objective);
+      plan = this.planner.createFallbackPlan(engineeredObjective);
+    }
+
+    // If prompt engineer suggested agents, pre-seed unassigned tasks
+    if (engineerResult && engineerResult.suggestedAgentIds.length > 0) {
+      for (const task of plan.tasks) {
+        if (task.assignedAgents.length === 0 && engineerResult.suggestedAgentIds.length > 0) {
+          task.assignedAgents = [engineerResult.suggestedAgentIds[0]];
+        }
+      }
     }
 
     // Apply option overrides
@@ -259,6 +294,13 @@ export class Orchestrator {
    */
   formatPlan(plan: OrchestrationPlan): string {
     return this.planner.formatPlan(plan);
+  }
+
+  /**
+   * Transform a prompt using the Prompt Engineer without orchestrating.
+   */
+  async engineerPrompt(rawPrompt: string): Promise<EngineerResult> {
+    return this.promptEngineer.engineer(rawPrompt);
   }
 
   /**
