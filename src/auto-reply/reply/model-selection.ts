@@ -1,20 +1,23 @@
-import type { OpenClawConfig } from "../../config/config.js";
-import type { ThinkLevel } from "./directives.js";
 import { clearSessionAuthProfileOverride } from "../../agents/auth-profiles/session-override.js";
 import { lookupContextTokens } from "../../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
 import { loadModelCatalog } from "../../agents/model-catalog.js";
 import {
+  buildConfiguredModelCatalog,
   buildAllowedModelSet,
   type ModelAliasIndex,
   modelKey,
+  normalizeModelRef,
   normalizeProviderId,
   resolveModelRefFromString,
+  resolveReasoningDefault,
   resolveThinkingDefault,
 } from "../../agents/model-selection.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { type SessionEntry, updateSessionStore } from "../../config/sessions.js";
 import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
 import { resolveThreadParentSessionKey } from "../../sessions/session-key-utils.js";
+import type { ThinkLevel } from "./directives.js";
 
 export type ModelDirectiveSelection = {
   provider: string;
@@ -32,8 +35,14 @@ type ModelSelectionState = {
   allowedModelCatalog: ModelCatalog;
   resetModelOverride: boolean;
   resolveDefaultThinkingLevel: () => Promise<ThinkLevel>;
+  /** Default reasoning level from model capability: "on" if model has reasoning, else "off". */
+  resolveDefaultReasoningLevel: () => Promise<"on" | "off">;
   needsModelCatalog: boolean;
 };
+
+function shouldLogModelSelectionTiming(): boolean {
+  return process.env.OPENCLAW_DEBUG_INGRESS_TIMING === "1";
+}
 
 const FUZZY_VARIANT_TOKENS = [
   "lightning",
@@ -260,6 +269,7 @@ function scoreFuzzyMatch(params: {
 
 export async function createModelSelectionState(params: {
   cfg: OpenClawConfig;
+  agentId?: string;
   agentCfg: NonNullable<NonNullable<OpenClawConfig["agents"]>["defaults"]> | undefined;
   sessionEntry?: SessionEntry;
   sessionStore?: Record<string, SessionEntry>;
@@ -271,7 +281,21 @@ export async function createModelSelectionState(params: {
   provider: string;
   model: string;
   hasModelDirective: boolean;
+  /** True when heartbeat.model was explicitly resolved for this run.
+   *  In that case, skip session-stored overrides so the heartbeat selection wins. */
+  hasResolvedHeartbeatModelOverride?: boolean;
 }): Promise<ModelSelectionState> {
+  const timingEnabled = shouldLogModelSelectionTiming();
+  const startMs = timingEnabled ? Date.now() : 0;
+  const logStage = (stage: string, extra?: string) => {
+    if (!timingEnabled) {
+      return;
+    }
+    const suffix = extra ? ` ${extra}` : "";
+    console.log(
+      `[model-selection] session=${params.sessionKey ?? "(no-session)"} stage=${stage} elapsedMs=${Date.now() - startMs}${suffix}`,
+    );
+  };
   const {
     cfg,
     agentCfg,
@@ -295,30 +319,54 @@ export async function createModelSelectionState(params: {
     parentSessionKey,
   });
   const hasStoredOverride = Boolean(initialStoredOverride);
-  const needsModelCatalog = params.hasModelDirective || hasAllowlist || hasStoredOverride;
+  const configuredModelCatalog = buildConfiguredModelCatalog({ cfg });
+  const needsModelCatalog = params.hasModelDirective;
 
   let allowedModelKeys = new Set<string>();
-  let allowedModelCatalog: ModelCatalog = [];
+  let allowedModelCatalog: ModelCatalog = configuredModelCatalog;
   let modelCatalog: ModelCatalog | null = null;
   let resetModelOverride = false;
 
   if (needsModelCatalog) {
     modelCatalog = await loadModelCatalog({ config: cfg });
+    logStage("catalog-loaded", `entries=${modelCatalog.length}`);
     const allowed = buildAllowedModelSet({
       cfg,
       catalog: modelCatalog,
       defaultProvider,
       defaultModel,
+      agentId: params.agentId,
     });
     allowedModelCatalog = allowed.allowedCatalog;
     allowedModelKeys = allowed.allowedKeys;
+    logStage(
+      "allowlist-built",
+      `allowed=${allowedModelCatalog.length} keys=${allowedModelKeys.size}`,
+    );
+  } else if (hasAllowlist) {
+    const allowed = buildAllowedModelSet({
+      cfg,
+      catalog: configuredModelCatalog,
+      defaultProvider,
+      defaultModel,
+      agentId: params.agentId,
+    });
+    allowedModelCatalog = allowed.allowedCatalog;
+    allowedModelKeys = allowed.allowedKeys;
+    logStage(
+      "configured-allowlist-built",
+      `allowed=${allowedModelCatalog.length} keys=${allowedModelKeys.size}`,
+    );
+  } else if (configuredModelCatalog.length > 0) {
+    logStage("configured-catalog-ready", `entries=${configuredModelCatalog.length}`);
   }
 
   if (sessionEntry && sessionStore && sessionKey && hasStoredOverride) {
     const overrideProvider = sessionEntry.providerOverride?.trim() || defaultProvider;
     const overrideModel = sessionEntry.modelOverride?.trim();
     if (overrideModel) {
-      const key = modelKey(overrideProvider, overrideModel);
+      const normalizedOverride = normalizeModelRef(overrideProvider, overrideModel);
+      const key = modelKey(normalizedOverride.provider, normalizedOverride.model);
       if (allowedModelKeys.size > 0 && !allowedModelKeys.has(key)) {
         const { updated } = applyModelOverrideToSessionEntry({
           entry: sessionEntry,
@@ -343,20 +391,28 @@ export async function createModelSelectionState(params: {
     sessionKey,
     parentSessionKey,
   });
-  if (storedOverride?.model) {
-    const candidateProvider = storedOverride.provider || defaultProvider;
-    const key = modelKey(candidateProvider, storedOverride.model);
+  // Skip stored session model override only when an explicit heartbeat.model
+  // was resolved. Heartbeat runs without heartbeat.model should still inherit
+  // the regular session/parent model override behavior.
+  const skipStoredOverride = params.hasResolvedHeartbeatModelOverride === true;
+  if (storedOverride?.model && !skipStoredOverride) {
+    const normalizedStoredOverride = normalizeModelRef(
+      storedOverride.provider || defaultProvider,
+      storedOverride.model,
+    );
+    const key = modelKey(normalizedStoredOverride.provider, normalizedStoredOverride.model);
     if (allowedModelKeys.size === 0 || allowedModelKeys.has(key)) {
-      provider = candidateProvider;
-      model = storedOverride.model;
+      provider = normalizedStoredOverride.provider;
+      model = normalizedStoredOverride.model;
     }
   }
 
   if (sessionEntry && sessionStore && sessionKey && sessionEntry.authProfileOverride) {
-    const { ensureAuthProfileStore } = await import("../../agents/auth-profiles.js");
+    const { ensureAuthProfileStore } = await import("../../agents/auth-profiles.runtime.js");
     const store = ensureAuthProfileStore(undefined, {
       allowKeychainPrompt: false,
     });
+    logStage("auth-profile-store-loaded", `profiles=${Object.keys(store.profiles).length}`);
     const profile = store.profiles[sessionEntry.authProfileOverride];
     const providerKey = normalizeProviderId(provider);
     if (!profile || normalizeProviderId(profile.provider) !== providerKey) {
@@ -377,6 +433,7 @@ export async function createModelSelectionState(params: {
     let catalogForThinking = modelCatalog ?? allowedModelCatalog;
     if (!catalogForThinking || catalogForThinking.length === 0) {
       modelCatalog = await loadModelCatalog({ config: cfg });
+      logStage("catalog-loaded-for-thinking", `entries=${modelCatalog.length}`);
       catalogForThinking = modelCatalog;
     }
     const resolved = resolveThinkingDefault({
@@ -390,6 +447,20 @@ export async function createModelSelectionState(params: {
     return defaultThinkingLevel;
   };
 
+  const resolveDefaultReasoningLevel = async (): Promise<"on" | "off"> => {
+    let catalogForReasoning = modelCatalog ?? allowedModelCatalog;
+    if (!catalogForReasoning || catalogForReasoning.length === 0) {
+      modelCatalog = await loadModelCatalog({ config: cfg });
+      logStage("catalog-loaded-for-reasoning", `entries=${modelCatalog.length}`);
+      catalogForReasoning = modelCatalog;
+    }
+    return resolveReasoningDefault({
+      provider,
+      model,
+      catalog: catalogForReasoning,
+    });
+  };
+
   return {
     provider,
     model,
@@ -397,6 +468,7 @@ export async function createModelSelectionState(params: {
     allowedModelCatalog,
     resetModelOverride,
     resolveDefaultThinkingLevel,
+    resolveDefaultReasoningLevel,
     needsModelCatalog,
   };
 }

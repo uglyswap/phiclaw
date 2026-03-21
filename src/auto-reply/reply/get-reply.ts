@@ -1,5 +1,3 @@
-import type { MsgContext } from "../templating.js";
-import type { GetReplyOptions, ReplyPayload } from "../types.js";
 import {
   resolveAgentDir,
   resolveAgentWorkspaceDir,
@@ -9,28 +7,36 @@ import {
 import { resolveModelRefFromString } from "../../agents/model-selection.js";
 import { resolveAgentTimeoutMs } from "../../agents/timeout.js";
 import { DEFAULT_AGENT_WORKSPACE_DIR, ensureAgentWorkspace } from "../../agents/workspace.js";
+import { resolveChannelModelOverride } from "../../channels/model-overrides.js";
 import { type OpenClawConfig, loadConfig } from "../../config/config.js";
-import { applyLinkUnderstanding } from "../../link-understanding/apply.js";
-import { applyMediaUnderstanding } from "../../media-understanding/apply.js";
 import { defaultRuntime } from "../../runtime.js";
+import { normalizeStringEntries } from "../../shared/string-normalization.js";
 import { resolveCommandAuthorization } from "../command-auth.js";
+import type { MsgContext } from "../templating.js";
 import { SILENT_REPLY_TOKEN } from "../tokens.js";
-import { resolveDefaultModel } from "./directive-handling.js";
+import type { GetReplyOptions, ReplyPayload } from "../types.js";
+import { emitResetCommandHooks, type ResetCommandAction } from "./commands-core.js";
+import { resolveDefaultModel } from "./directive-handling.persist.js";
 import { resolveReplyDirectives } from "./get-reply-directives.js";
 import { handleInlineActions } from "./get-reply-inline-actions.js";
 import { runPreparedReply } from "./get-reply-run.js";
 import { finalizeInboundContext } from "./inbound-context.js";
+import { emitPreAgentMessageHooks } from "./message-preprocess-hooks.js";
 import { applyResetModelOverride } from "./session-reset-model.js";
 import { initSessionState } from "./session.js";
 import { stageSandboxMedia } from "./stage-sandbox-media.js";
 import { createTypingController } from "./typing.js";
+
+function shouldLogCoreIngressTiming(): boolean {
+  return process.env.OPENCLAW_DEBUG_INGRESS_TIMING === "1";
+}
 
 function mergeSkillFilters(channelFilter?: string[], agentFilter?: string[]): string[] | undefined {
   const normalize = (list?: string[]) => {
     if (!Array.isArray(list)) {
       return undefined;
     }
-    return list.map((entry) => String(entry).trim()).filter(Boolean);
+    return normalizeStringEntries(list);
   };
   const channel = normalize(channelFilter);
   const agent = normalize(agentFilter);
@@ -50,11 +56,69 @@ function mergeSkillFilters(channelFilter?: string[], agentFilter?: string[]): st
   return channel.filter((name) => agentSet.has(name));
 }
 
+function hasInboundMedia(ctx: MsgContext): boolean {
+  return Boolean(
+    ctx.StickerMediaIncluded ||
+    ctx.Sticker ||
+    ctx.MediaPath?.trim() ||
+    ctx.MediaUrl?.trim() ||
+    ctx.MediaPaths?.some((value) => value?.trim()) ||
+    ctx.MediaUrls?.some((value) => value?.trim()) ||
+    ctx.MediaTypes?.length,
+  );
+}
+
+function hasLinkCandidate(ctx: MsgContext): boolean {
+  const message = ctx.BodyForCommands ?? ctx.CommandBody ?? ctx.RawBody ?? ctx.Body;
+  if (!message) {
+    return false;
+  }
+  return /\bhttps?:\/\/\S+/i.test(message);
+}
+
+async function applyMediaUnderstandingIfNeeded(params: {
+  ctx: MsgContext;
+  cfg: OpenClawConfig;
+  agentDir?: string;
+  activeModel: { provider: string; model: string };
+}): Promise<boolean> {
+  if (!hasInboundMedia(params.ctx)) {
+    return false;
+  }
+  const { applyMediaUnderstanding } = await import("../../media-understanding/apply.runtime.js");
+  await applyMediaUnderstanding(params);
+  return true;
+}
+
+async function applyLinkUnderstandingIfNeeded(params: {
+  ctx: MsgContext;
+  cfg: OpenClawConfig;
+}): Promise<boolean> {
+  if (!hasLinkCandidate(params.ctx)) {
+    return false;
+  }
+  const { applyLinkUnderstanding } = await import("../../link-understanding/apply.runtime.js");
+  await applyLinkUnderstanding(params);
+  return true;
+}
+
 export async function getReplyFromConfig(
   ctx: MsgContext,
   opts?: GetReplyOptions,
   configOverride?: OpenClawConfig,
 ): Promise<ReplyPayload | ReplyPayload[] | undefined> {
+  const ingressTimingEnabled = shouldLogCoreIngressTiming();
+  const ingressStartMs = ingressTimingEnabled ? Date.now() : 0;
+  const logIngressStage = (stage: string, extra?: string) => {
+    if (!ingressTimingEnabled) {
+      return;
+    }
+    const sessionKey = ctx.SessionKey?.trim() || "(no-session)";
+    const suffix = extra ? ` ${extra}` : "";
+    defaultRuntime.log?.(
+      `[ingress] session=${sessionKey} stage=${stage} elapsedMs=${Date.now() - ingressStartMs}${suffix}`,
+    );
+  };
   const isFastTestEnv = process.env.OPENCLAW_TEST_FAST === "1";
   const cfg = configOverride ?? loadConfig();
   const targetSessionKey =
@@ -78,8 +142,12 @@ export async function getReplyFromConfig(
   });
   let provider = defaultProvider;
   let model = defaultModel;
+  let hasResolvedHeartbeatModelOverride = false;
   if (opts?.isHeartbeat) {
-    const heartbeatRaw = agentCfg?.heartbeat?.model?.trim() ?? "";
+    // Prefer the resolved per-agent heartbeat model passed from the heartbeat runner,
+    // fall back to the global defaults heartbeat model for backward compatibility.
+    const heartbeatRaw =
+      opts.heartbeatModelOverride?.trim() ?? agentCfg?.heartbeat?.model?.trim() ?? "";
     const heartbeatRef = heartbeatRaw
       ? resolveModelRefFromString({
           raw: heartbeatRaw,
@@ -90,6 +158,7 @@ export async function getReplyFromConfig(
     if (heartbeatRef) {
       provider = heartbeatRef.ref.provider;
       model = heartbeatRef.ref.model;
+      hasResolvedHeartbeatModelOverride = true;
     }
   }
 
@@ -99,14 +168,16 @@ export async function getReplyFromConfig(
     ensureBootstrapFiles: !agentCfg?.skipBootstrap && !isFastTestEnv,
   });
   const workspaceDir = workspace.dir;
+  logIngressStage("workspace-ready");
   const agentDir = resolveAgentDir(cfg, agentId);
-  const timeoutMs = resolveAgentTimeoutMs({ cfg });
+  const timeoutMs = resolveAgentTimeoutMs({ cfg, overrideSeconds: opts?.timeoutOverrideSeconds });
   const configuredTypingSeconds =
     agentCfg?.typingIntervalSeconds ?? sessionCfg?.typingIntervalSeconds;
   const typingIntervalSeconds =
     typeof configuredTypingSeconds === "number" ? configuredTypingSeconds : 6;
   const typing = createTypingController({
     onReplyStart: opts?.onReplyStart,
+    onCleanup: opts?.onTypingCleanup,
     typingIntervalSeconds,
     silentToken: SILENT_REPLY_TOKEN,
     log: defaultRuntime.log,
@@ -116,17 +187,24 @@ export async function getReplyFromConfig(
   const finalized = finalizeInboundContext(ctx);
 
   if (!isFastTestEnv) {
-    await applyMediaUnderstanding({
+    const appliedMediaUnderstanding = await applyMediaUnderstandingIfNeeded({
       ctx: finalized,
       cfg,
       agentDir,
       activeModel: { provider, model },
     });
-    await applyLinkUnderstanding({
+    logIngressStage("media-understanding", `applied=${appliedMediaUnderstanding ? "1" : "0"}`);
+    const appliedLinkUnderstanding = await applyLinkUnderstandingIfNeeded({
       ctx: finalized,
       cfg,
     });
+    logIngressStage("link-understanding", `applied=${appliedLinkUnderstanding ? "1" : "0"}`);
   }
+  emitPreAgentMessageHooks({
+    ctx: finalized,
+    cfg,
+    isFastTestEnv,
+  });
 
   const commandAuthorized = finalized.CommandAuthorized;
   resolveCommandAuthorization({
@@ -139,6 +217,7 @@ export async function getReplyFromConfig(
     cfg,
     commandAuthorized,
   });
+  logIngressStage("session-init");
   let {
     sessionCtx,
     sessionEntry,
@@ -160,6 +239,7 @@ export async function getReplyFromConfig(
 
   await applyResetModelOverride({
     cfg,
+    agentId,
     resetTriggered,
     bodyStripped,
     sessionCtx,
@@ -172,6 +252,36 @@ export async function getReplyFromConfig(
     defaultModel,
     aliasIndex,
   });
+
+  const channelModelOverride = resolveChannelModelOverride({
+    cfg,
+    channel:
+      groupResolution?.channel ??
+      sessionEntry.channel ??
+      sessionEntry.origin?.provider ??
+      (typeof finalized.OriginatingChannel === "string"
+        ? finalized.OriginatingChannel
+        : undefined) ??
+      finalized.Provider,
+    groupId: groupResolution?.id ?? sessionEntry.groupId,
+    groupChannel: sessionEntry.groupChannel ?? sessionCtx.GroupChannel ?? finalized.GroupChannel,
+    groupSubject: sessionEntry.subject ?? sessionCtx.GroupSubject ?? finalized.GroupSubject,
+    parentSessionKey: sessionCtx.ParentSessionKey,
+  });
+  const hasSessionModelOverride = Boolean(
+    sessionEntry.modelOverride?.trim() || sessionEntry.providerOverride?.trim(),
+  );
+  if (!hasResolvedHeartbeatModelOverride && !hasSessionModelOverride && channelModelOverride) {
+    const resolved = resolveModelRefFromString({
+      raw: channelModelOverride.model,
+      defaultProvider,
+      aliasIndex,
+    });
+    if (resolved) {
+      provider = resolved.ref.provider;
+      model = resolved.ref.model;
+    }
+  }
 
   const directiveResult = await resolveReplyDirectives({
     ctx: finalized,
@@ -195,11 +305,14 @@ export async function getReplyFromConfig(
     aliasIndex,
     provider,
     model,
+    hasResolvedHeartbeatModelOverride,
     typing,
     opts: resolvedOpts,
     skillFilter: mergedSkillFilter,
   });
+  logIngressStage("directives-resolved");
   if (directiveResult.kind === "reply") {
+    logIngressStage("early-reply");
     return directiveResult.reply;
   }
 
@@ -234,6 +347,27 @@ export async function getReplyFromConfig(
   provider = resolvedProvider;
   model = resolvedModel;
 
+  const maybeEmitMissingResetHooks = async () => {
+    if (!resetTriggered || !command.isAuthorizedSender || command.resetHookTriggered) {
+      return;
+    }
+    const resetMatch = command.commandBodyNormalized.match(/^\/(new|reset)(?:\s|$)/);
+    if (!resetMatch) {
+      return;
+    }
+    const action: ResetCommandAction = resetMatch[1] === "reset" ? "reset" : "new";
+    await emitResetCommandHooks({
+      action,
+      ctx,
+      cfg,
+      command,
+      sessionKey,
+      sessionEntry,
+      previousSessionEntry,
+      workspaceDir,
+    });
+  };
+
   const inlineActionResult = await handleInlineActions({
     ctx,
     sessionCtx,
@@ -264,6 +398,8 @@ export async function getReplyFromConfig(
     resolvedVerboseLevel,
     resolvedReasoningLevel,
     resolvedElevatedLevel,
+    blockReplyChunking,
+    resolvedBlockStreamingBreak,
     resolveDefaultThinkingLevel: modelState.resolveDefaultThinkingLevel,
     provider,
     model,
@@ -273,8 +409,10 @@ export async function getReplyFromConfig(
     skillFilter: mergedSkillFilter,
   });
   if (inlineActionResult.kind === "reply") {
+    await maybeEmitMissingResetHooks();
     return inlineActionResult.reply;
   }
+  await maybeEmitMissingResetHooks();
   directives = inlineActionResult.directives;
   abortedLastRun = inlineActionResult.abortedLastRun ?? abortedLastRun;
 
@@ -285,6 +423,7 @@ export async function getReplyFromConfig(
     sessionKey,
     workspaceDir,
   });
+  logIngressStage("sandbox-media");
 
   return runPreparedReply({
     ctx,
