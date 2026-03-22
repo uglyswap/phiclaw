@@ -262,9 +262,13 @@ RUN set -eux; \
     done && \
     cp /root/.bun/bin/bun /usr/local/bin/bun
 
-# Install QMD 2 via Bun (handles better-sqlite3 native bindings correctly)
-RUN mkdir -p /app/qmd && cd /app/qmd && \
-    bun install @tobilu/qmd && \
+# Install QMD 2 via Bun in an isolated directory (handles better-sqlite3 native
+# bindings correctly). We create a standalone package.json so Bun does not walk
+# up to /app/package.json and pollute the main node_modules tree.
+RUN mkdir -p /app/qmd && \
+    echo '{"name":"phiclaw-qmd","private":true}' > /app/qmd/package.json && \
+    cd /app/qmd && \
+    bun add @tobilu/qmd && \
     chown -R node:node /app/qmd
 
 # Copy QMD scripts and make executable
