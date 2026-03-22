@@ -14,7 +14,7 @@ Give PhiClaw a business objective — it mobilizes an entire team of specialists
 - **Intelligent Orchestrator** — decomposes objectives into tasks, routes to the best agents, executes in parallel or sequence, compiles deliverables
 - **Agent Loader** — parses agent profiles from Markdown with YAML front-matter, indexes by name/division/keywords
 - **Prompt Engineer** — transforms raw user prompts into structured, optimized orchestration requests
-- **Memory & Knowledge** — QMD 2 vector memory, ontology knowledge graph, auto-learning from past orchestrations
+- **Memory & Knowledge** — QMD 2 vector memory (baked-in via Bun), ontology knowledge graph, auto-learning from past orchestrations
 - **Multi-Channel** — Telegram, WhatsApp, Discord, Webchat, Voice (TTS/STT)
 - **🎤 Native Voice Transcription** — Local Whisper (faster-whisper) speech-to-text, free, no API key needed
 - **🔊 Native Text-to-Speech** — Edge TTS (Microsoft), free, multilingual, high quality voices
@@ -179,6 +179,42 @@ Audio settings are in `phiclaw.config.json`:
   }
 }
 ```
+
+## 🧠 QMD 2 — Vector Memory
+
+PhiClaw ships with **QMD 2** (Vector Memory) baked directly into the Docker image. No runtime installation needed.
+
+### How It Works
+- **Bun** installs `@tobilu/qmd` at build time, ensuring `better-sqlite3` native bindings are always correct
+- The QMD database persists in the volume at `~/.openclaw/workspace/.cache/qmd/`
+- Collections index your `memory/` directory and workspace `*.md` files
+
+### Scripts
+| Script | Purpose |
+|--------|---------|
+| `/app/scripts/qmd-wrapper.sh` | QMD CLI wrapper (use this to invoke QMD) |
+| `/app/scripts/setup-qmd.sh` | Initialize collections on first launch |
+| `/app/scripts/check-qmd.sh` | Health check + auto-repair `better-sqlite3` |
+
+### First-Run Setup
+```bash
+docker exec -it phiclaw /app/scripts/setup-qmd.sh
+```
+
+### Check Health
+```bash
+docker exec phiclaw /app/scripts/check-qmd.sh
+```
+
+## 🕸️ Ontology — Knowledge Graph
+
+PhiClaw includes a **typed knowledge graph** for structured agent memory. Entities (Person, Project, Task, Event, Document...) are linked via relations and validated against a schema.
+
+- Storage: `memory/ontology/graph.jsonl`
+- Schema: `memory/ontology/schema.yaml`
+- Script: `python3 /app/skills/ontology/scripts/ontology.py`
+
+See `skills/ontology/SKILL.md` for full documentation.
 
 ## 📜 License
 

@@ -23,9 +23,20 @@
     "useLLM": true
   },
   "memory": {
+    "backend": "qmd",
     "storageDir": ".phiclaw/memory",
     "maxEntries": 1000,
-    "persistToDisk": true
+    "persistToDisk": true,
+    "qmd": {
+      "command": "/app/scripts/qmd-wrapper.sh",
+      "includeDefaultMemory": true,
+      "sessions": { "enabled": true },
+      "update": {
+        "interval": "5m",
+        "debounceMs": 15000,
+        "onBoot": true
+      }
+    }
   },
   "autoLearning": {
     "enabled": true,

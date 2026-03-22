@@ -248,6 +248,34 @@ RUN --mount=type=cache,id=openclaw-bookworm-apt-cache,target=/var/cache/apt,shar
 COPY --chown=node:node scripts/transcribe.sh scripts/setup-audio.sh /app/scripts/
 RUN chmod +x /app/scripts/transcribe.sh /app/scripts/setup-audio.sh 2>/dev/null || true
 
+# ── PhiClaw: QMD 2 (Vector Memory) ───────────────────────────────────
+# Install Bun runtime (needed for better-sqlite3 native bindings in QMD).
+# Bun installs better-sqlite3 with pre-built binaries that match the host,
+# avoiding the recurring crash after container recreation.
+RUN set -eux; \
+    for attempt in 1 2 3 4 5; do \
+      if curl --retry 5 --retry-all-errors --retry-delay 2 -fsSL https://bun.sh/install | bash; then \
+        break; \
+      fi; \
+      if [ "$attempt" -eq 5 ]; then exit 1; fi; \
+      sleep $((attempt * 2)); \
+    done && \
+    cp /root/.bun/bin/bun /usr/local/bin/bun
+
+# Install QMD 2 via Bun (handles better-sqlite3 native bindings correctly)
+RUN mkdir -p /app/qmd && cd /app/qmd && \
+    bun install @tobilu/qmd && \
+    chown -R node:node /app/qmd
+
+# Copy QMD scripts and make executable
+COPY --chown=node:node scripts/qmd-wrapper.sh scripts/setup-qmd.sh scripts/check-qmd.sh /app/scripts/
+RUN chmod +x /app/scripts/qmd-wrapper.sh /app/scripts/setup-qmd.sh /app/scripts/check-qmd.sh
+
+# ── PhiClaw: Ontology (Knowledge Graph) skill ─────────────────────────
+# Bundled ontology skill for structured agent memory (graph-based).
+COPY --chown=node:node skills/ontology /app/skills/ontology
+RUN chmod +x /app/skills/ontology/scripts/ontology.py 2>/dev/null || true
+
 # Create whisper model cache dir owned by node user (model downloads at first use)
 RUN mkdir -p /home/node/.cache/huggingface && \
     chown -R node:node /home/node/.cache
