@@ -842,10 +842,10 @@ function buildChatCommands(): ChatCommandDefinition[] {
       argsMenu: "auto",
     }),
     defineChatCommand({
-      key: "agents-list",
-      nativeName: "agents",
-      description: "List all agents or agents in a division.",
-      textAlias: "/agents",
+      key: "phi-agents-list",
+      nativeName: "phiagents",
+      description: "List PhiClaw orchestrator agents by division.",
+      textAlias: "/phiagents",
       category: "status",
       args: [
         {
@@ -856,10 +856,10 @@ function buildChatCommands(): ChatCommandDefinition[] {
       ],
     }),
     defineChatCommand({
-      key: "agent-profile",
-      nativeName: "agent",
-      description: "Show detailed profile of an agent.",
-      textAlias: "/agent",
+      key: "phi-agent-profile",
+      nativeName: "phiagent",
+      description: "Show detailed profile of a PhiClaw agent.",
+      textAlias: "/phiagent",
       category: "status",
       args: [
         {

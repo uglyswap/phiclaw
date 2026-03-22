@@ -200,7 +200,7 @@ export const handleAgentsListCommand: CommandHandler = async (params, allowTextC
   if (!allowTextCommands) return null;
 
   const norm = params.command.commandBodyNormalized;
-  if (norm !== "/agents" && !norm.startsWith("/agents ")) return null;
+  if (norm !== "/phiagents" && !norm.startsWith("/phiagents ")) return null;
 
   if (!params.command.isAuthorizedSender) {
     logVerbose(
@@ -210,7 +210,7 @@ export const handleAgentsListCommand: CommandHandler = async (params, allowTextC
   }
 
   const loader = getDefaultAgentLoader();
-  const arg = norm.slice("/agents".length).trim().toLowerCase();
+  const arg = norm.slice("/phiagents".length).trim().toLowerCase();
 
   if (!arg) {
     // List all divisions
@@ -235,10 +235,10 @@ export const handleAgentProfileCommand: CommandHandler = async (params, allowTex
   if (!allowTextCommands) return null;
 
   const norm = params.command.commandBodyNormalized;
-  if (norm !== "/agent" && !norm.startsWith("/agent ")) return null;
+  if (norm !== "/phiagent" && !norm.startsWith("/phiagent ")) return null;
 
-  // Avoid conflict with /agents
-  if (norm === "/agents" || norm.startsWith("/agents ")) return null;
+  // Avoid conflict with /phiagents
+  if (norm === "/phiagents" || norm.startsWith("/phiagents ")) return null;
 
   if (!params.command.isAuthorizedSender) {
     logVerbose(
@@ -247,11 +247,11 @@ export const handleAgentProfileCommand: CommandHandler = async (params, allowTex
     return { shouldContinue: false };
   }
 
-  const query = norm.slice("/agent".length).trim();
+  const query = norm.slice("/phiagent".length).trim();
   if (!query) {
     return {
       shouldContinue: false,
-      reply: { text: "⚠️ Usage: `/agent <name>` — show an agent's detailed profile." },
+      reply: { text: "⚠️ Usage: `/phiagent <name>` — show an agent's detailed profile." },
     };
   }
 
