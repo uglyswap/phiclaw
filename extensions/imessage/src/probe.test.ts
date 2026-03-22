@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as processRuntime from "../../../src/plugin-sdk/process-runtime.js";
-import * as setupRuntime from "../../../src/plugin-sdk/setup.js";
+import * as processRuntime from "openclaw/plugin-sdk/process-runtime";
+import * as setupRuntime from "openclaw/plugin-sdk/setup";
 import * as clientModule from "./client.js";
 import { probeIMessage } from "./probe.js";
 
