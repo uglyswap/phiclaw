@@ -231,6 +231,27 @@ RUN ln -sf /app/openclaw.mjs /usr/local/bin/openclaw \
 
 ENV NODE_ENV=production
 
+# ── PhiClaw: Native audio support (Whisper STT + Edge TTS) ────────────
+# Install ffmpeg for audio conversion and Python packages for transcription/TTS.
+# faster-whisper: local Whisper speech-to-text (model downloads on first use ~500MB)
+# edge-tts: free text-to-speech via Microsoft Edge neural voices (no API key)
+RUN --mount=type=cache,id=openclaw-bookworm-apt-cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=openclaw-bookworm-apt-lists,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      ffmpeg python3-pip && \
+    pip install --no-cache-dir --break-system-packages \
+      faster-whisper edge-tts && \
+    rm -rf /root/.cache/pip
+
+# Copy PhiClaw audio scripts and make executable
+COPY --chown=node:node scripts/transcribe.sh scripts/setup-audio.sh /app/scripts/
+RUN chmod +x /app/scripts/transcribe.sh /app/scripts/setup-audio.sh 2>/dev/null || true
+
+# Create whisper model cache dir owned by node user (model downloads at first use)
+RUN mkdir -p /home/node/.cache/huggingface && \
+    chown -R node:node /home/node/.cache
+
 # Security hardening: Run as non-root user
 # The node:24-bookworm image includes a 'node' user (uid 1000)
 # This reduces the attack surface by preventing container escape via root privileges
