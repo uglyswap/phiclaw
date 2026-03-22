@@ -16,6 +16,8 @@ Give PhiClaw a business objective — it mobilizes an entire team of specialists
 - **Prompt Engineer** — transforms raw user prompts into structured, optimized orchestration requests
 - **Memory & Knowledge** — QMD 2 vector memory, ontology knowledge graph, auto-learning from past orchestrations
 - **Multi-Channel** — Telegram, WhatsApp, Discord, Webchat, Voice (TTS/STT)
+- **🎤 Native Voice Transcription** — Local Whisper (faster-whisper) speech-to-text, free, no API key needed
+- **🔊 Native Text-to-Speech** — Edge TTS (Microsoft), free, multilingual, high quality voices
 - **TypeScript Strict** — production-grade, fully typed codebase
 
 ## 🏗️ Architecture
@@ -131,6 +133,49 @@ Add to your `openclaw.json`:
   },
   "promptEngineer": {
     "enabled": true
+  }
+}
+```
+
+## 🎤 Audio & Voice Support
+
+PhiClaw ships with **native audio support** out of the box — no external API keys required.
+
+### Speech-to-Text (Transcription)
+- Powered by **faster-whisper** (CTranslate2 Whisper implementation)
+- Runs locally on CPU with INT8 quantization — fast and free
+- Whisper "small" model (~500MB, downloaded automatically on first use)
+- Supports all Whisper-compatible languages
+
+### Text-to-Speech (TTS)
+- Powered by **Edge TTS** (Microsoft Edge's neural voices)
+- Free, no API key needed
+- Default voice: `fr-FR-VivienneMultilingualNeural` (configurable)
+- Supports 300+ voices across 100+ languages
+
+### First-Run Setup
+After deploying PhiClaw, run the audio setup to download the Whisper model:
+```bash
+docker exec -it phiclaw /app/scripts/setup-audio.sh
+```
+
+### Configuration
+Audio settings are in `phiclaw.config.json`:
+```json
+{
+  "tools": {
+    "media": {
+      "audio": {
+        "enabled": true,
+        "models": [{ "type": "cli", "command": "/app/scripts/transcribe.sh" }]
+      }
+    }
+  },
+  "messages": {
+    "tts": {
+      "provider": "edge",
+      "edge": { "voice": "fr-FR-VivienneMultilingualNeural" }
+    }
   }
 }
 ```

@@ -38,5 +38,29 @@
   "ontology": {
     "storageDir": ".phiclaw",
     "filePath": ".phiclaw/ontology.jsonl"
+  },
+  "tools": {
+    "media": {
+      "audio": {
+        "enabled": true,
+        "models": [{
+          "type": "cli",
+          "command": "/app/scripts/transcribe.sh",
+          "args": ["{file}"],
+          "timeoutSeconds": 120
+        }]
+      }
+    }
+  },
+  "messages": {
+    "tts": {
+      "auto": "tagged",
+      "provider": "edge",
+      "edge": {
+        "enabled": true,
+        "voice": "fr-FR-VivienneMultilingualNeural",
+        "lang": "fr-FR"
+      }
+    }
   }
 }
