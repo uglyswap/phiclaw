@@ -145,6 +145,10 @@ COPY --from=runtime-assets --chown=node:node /app/openclaw.mjs .
 COPY --from=runtime-assets --chown=node:node /app/extensions ./extensions
 COPY --from=runtime-assets --chown=node:node /app/skills ./skills
 COPY --from=runtime-assets --chown=node:node /app/docs ./docs
+# PhiClaw: Copy the 156 orchestrator agent profiles (14 divisions)
+COPY --from=runtime-assets --chown=node:node /app/agents ./agents
+# PhiClaw: Copy orchestrator source + config
+COPY --from=runtime-assets --chown=node:node /app/phiclaw.config.json ./phiclaw.config.json
 
 # In npm-installed Docker images, prefer the copied source extension tree for
 # bundled discovery so package metadata that points at source entries stays valid.
