@@ -287,10 +287,15 @@ RUN mkdir -p /home/node/.cache/huggingface && \
 # Security hardening: Run as non-root user
 # The node:24-bookworm image includes a 'node' user (uid 1000)
 # This reduces the attack surface by preventing container escape via root privileges
+# Copy PhiClaw entrypoint (first-launch setup: QMD collections + embedding)
+COPY --chown=node:node scripts/entrypoint.sh /app/scripts/entrypoint.sh
+RUN chmod +x /app/scripts/entrypoint.sh
+
 USER node
 
 # Start gateway server with default config.
-# Binds to loopback (127.0.0.1) by default for security.
+# The entrypoint handles first-launch QMD setup (collections + embeddings)
+# then execs into the OpenClaw gateway.
 #
 # IMPORTANT: With Docker bridge networking (-p 18789:18789), loopback bind
 # makes the gateway unreachable from the host. Either:
@@ -303,4 +308,5 @@ USER node
 # For external access from host/ingress, override bind to "lan" and set auth.
 HEALTHCHECK --interval=3m --timeout=10s --start-period=15s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["node", "openclaw.mjs", "gateway", "--allow-unconfigured"]
+ENTRYPOINT ["/app/scripts/entrypoint.sh"]
+CMD ["gateway", "--allow-unconfigured"]
