@@ -383,7 +383,9 @@ let defaultLoader: AgentLoader | null = null;
  */
 export function getDefaultAgentLoader(projectRoot?: string): AgentLoader {
   if (!defaultLoader) {
-    const root = projectRoot ?? join(import.meta.dirname ?? __dirname, "..", "..");
+    // Use process.cwd() as primary fallback (resolves to /app in Docker),
+    // then try import.meta.dirname (which points to dist/ in bundled builds).
+    const root = projectRoot ?? process.cwd();
     defaultLoader = new AgentLoader(join(root, "agents"));
     defaultLoader.load();
   }
