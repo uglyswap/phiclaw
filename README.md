@@ -216,6 +216,62 @@ PhiClaw includes a **typed knowledge graph** for structured agent memory. Entiti
 
 See `skills/ontology/SKILL.md` for full documentation.
 
+## 🔄 Auto-Updater
+
+PhiClaw includes a **production-grade auto-updater** that syncs with upstream OpenClaw, rebuilds, and redeploys — with automatic rollback on failure.
+
+### What It Does
+1. Checks and installs Docker BuildKit if needed
+2. Fetches upstream `openclaw/openclaw` main branch
+3. Merges upstream changes with **automatic conflict resolution** (protects PhiClaw-specific files)
+4. Pushes the merge to GitHub
+5. Rebuilds the Docker image (tags old image as `phiclaw:rollback`)
+6. Redeploys the container with the new image
+7. Validates: gateway health, Telegram connection, QMD, agents
+8. Rolls back automatically if any critical step fails
+
+### Protected Files (never overwritten by upstream)
+- `agents/` — our 172+ specialized agents
+- `src/orchestrator/` — our orchestration engine
+- `src/auto-reply/reply/commands-phiclaw.ts` — custom commands
+- `phiclaw.config.json` — our configuration
+- `scripts/` — all PhiClaw scripts (entrypoint, audio, QMD, updater)
+- `skills/ontology/` — knowledge graph skill
+- `README.md` — this file
+
+### Usage
+```bash
+# Run from the HOST (requires Docker access)
+cd /tmp/phiclaw
+./scripts/update-phiclaw.sh
+
+# Force rebuild even if already up to date
+./scripts/update-phiclaw.sh --force
+
+# Dry run (simulate without changes)
+./scripts/update-phiclaw.sh --dry-run
+
+# With webhook notification
+PHICLAW_NOTIFY_WEBHOOK="https://hooks.example.com/update" ./scripts/update-phiclaw.sh --notify
+```
+
+### Environment Variables
+| Variable | Default | Description |
+|---|---|---|
+| `PHICLAW_REPO_DIR` | `/tmp/phiclaw` | Path to the PhiClaw repo |
+| `PHICLAW_IMAGE` | `phiclaw:local` | Docker image name |
+| `PHICLAW_CONTAINER` | `phiclaw` | Docker container name |
+| `PHICLAW_HOST_PORT` | `18800` | Host port mapping |
+| `PHICLAW_CONTAINER_PORT` | `18789` | Container port |
+| `PHICLAW_HEALTH_TIMEOUT` | `120` | Gateway health check timeout (seconds) |
+| `PHICLAW_NOTIFY_WEBHOOK` | _(empty)_ | Webhook URL for notifications |
+
+### Automated Updates (Cron)
+```bash
+# Daily at 4 AM
+0 4 * * * /tmp/phiclaw/scripts/update-phiclaw.sh >> /var/log/phiclaw-update.log 2>&1
+```
+
 ## 📜 License
 
 MIT — Same as OpenClaw and The Agency.

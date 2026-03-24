@@ -291,6 +291,10 @@ RUN mkdir -p /home/node/.cache/huggingface && \
 # Security hardening: Run as non-root user
 # The node:24-bookworm image includes a 'node' user (uid 1000)
 # This reduces the attack surface by preventing container escape via root privileges
+# Copy PhiClaw auto-updater script (run from host, included for reference)
+COPY --chown=node:node scripts/update-phiclaw.sh /app/scripts/update-phiclaw.sh
+RUN chmod +x /app/scripts/update-phiclaw.sh
+
 # Copy PhiClaw entrypoint (first-launch setup: QMD collections + embedding)
 COPY --chown=node:node scripts/entrypoint.sh /app/scripts/entrypoint.sh
 RUN chmod +x /app/scripts/entrypoint.sh
