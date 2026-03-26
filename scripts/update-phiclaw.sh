@@ -62,6 +62,8 @@ PROTECTED_PATHS=(
     "scripts/check-qmd.sh"
     "scripts/entrypoint.sh"
     "scripts/update-phiclaw.sh"
+    "scripts/inject-phiclaw-ui.sh"
+    "Dockerfile.phiclaw"
     "skills/ontology/"
     "README.md"
 )

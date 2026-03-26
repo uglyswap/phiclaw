@@ -41,6 +41,11 @@ RUN OPENCLAW_A2UI_SKIP_MISSING=1 pnpm build
 ENV OPENCLAW_PREFER_PNPM=1
 RUN pnpm ui:build
 
+# Inject PhiClaw UI toggles into the built index.html
+# This MUST run after ui:build so it uses the correct hashed filenames
+RUN chmod +x /app/scripts/inject-phiclaw-ui.sh && \
+    /app/scripts/inject-phiclaw-ui.sh /app/dist/control-ui/index.html
+
 ENV NODE_ENV=production
 
 # Make audio scripts executable
