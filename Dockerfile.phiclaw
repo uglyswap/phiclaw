@@ -51,6 +51,12 @@ RUN for d in /tmp/ext-src/*/; do \
 RUN NODE_OPTIONS=--max-old-space-size=2048 pnpm install --no-frozen-lockfile
 
 COPY . .
+
+# Build ALL extensions including optional bundled clusters (acpx, googlechat,
+# matrix, whatsapp, msteams, nostr, tlon, twitch, diagnostics-otel, diffs,
+# memory-lancedb, zalouser). Without this env var, tsdown skips them and the
+# gateway crashes with "extension entry escapes package directory" errors.
+ENV OPENCLAW_INCLUDE_OPTIONAL_BUNDLED=1
 RUN OPENCLAW_A2UI_SKIP_MISSING=1 pnpm build
 # Force pnpm for UI build (Bun may fail on ARM/Synology architectures)
 ENV OPENCLAW_PREFER_PNPM=1
