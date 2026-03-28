@@ -33,11 +33,20 @@ COPY ui/package.json ./ui/package.json
 COPY patches ./patches
 COPY scripts ./scripts
 
-# Copy all workspace sub-package package.json files so pnpm resolves ALL deps
-# (including extensions with external dependencies: acpx, googlechat, matrix, etc.)
-# Without this, extensions that require external packages fail to build.
-COPY extensions/ ./extensions/
-COPY packages/ ./packages/
+# Copy extension package.json files so pnpm resolves their external dependencies
+# (acpx, googlechat, matrix, whatsapp, etc.). We use a shell loop to copy only
+# package.json files, keeping the layer small. packages/ is NOT copied here
+# because some packages depend on "openclaw@workspace:*" which resolves to the
+# root package name (which is "phiclaw" in this fork).
+RUN mkdir -p extensions
+COPY extensions/ /tmp/ext-src/
+RUN for d in /tmp/ext-src/*/; do \
+      name=$(basename "$d"); \
+      if [ -f "$d/package.json" ]; then \
+        mkdir -p "extensions/$name" && \
+        cp "$d/package.json" "extensions/$name/package.json"; \
+      fi; \
+    done && rm -rf /tmp/ext-src
 
 RUN NODE_OPTIONS=--max-old-space-size=2048 pnpm install --no-frozen-lockfile
 
