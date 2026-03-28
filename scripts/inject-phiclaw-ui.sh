@@ -21,7 +21,7 @@ echo "[inject-phiclaw-ui] Injecting PhiClaw toggles into ${INDEX_HTML}..."
 
 # The PhiClaw toggle panel HTML + CSS + JS to inject before </body>
 PHICLAW_INJECT='
-    <div id="phi-toggles-panel" style="position:fixed;bottom:20px;right:20px;background:#1e1e2e;border:1px solid #45475a;border-radius:12px;padding:12px 16px;z-index:99999;font-family:-apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 4px 20px rgba(0,0,0,0.4);min-width:220px;transition:all 0.3s ease;">
+    <div id="phi-toggles-panel" style="position:fixed;bottom:80px;left:16px;background:#1e1e2e;border:1px solid #45475a;border-radius:12px;padding:10px 14px;z-index:99999;font-family:-apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,0.3);min-width:200px;max-width:230px;transition:all 0.3s ease;">
       <button onclick="var p=document.getElementById('\''phi-toggles-body'\'');var b=this;if(p.style.display==='\''none'\''){p.style.display='\''block'\'';b.textContent='\''▼'\''}else{p.style.display='\''none'\'';b.textContent='\''▲'\''}" style="position:absolute;top:6px;right:10px;background:none;border:none;color:#6c7086;cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px;">▼</button>
       <h3 style="margin:0 0 10px;font-size:13px;color:#cdd6f4;font-weight:600;letter-spacing:0.5px;">⚡ PhiClaw</h3>
       <div id="phi-toggles-body">
