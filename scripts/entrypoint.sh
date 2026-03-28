@@ -5,6 +5,7 @@ set -e
 SETUP_MARKER="${HOME}/.openclaw/.phiclaw-setup-done"
 QMD_WRAPPER="/app/scripts/qmd-wrapper.sh"
 SETUP_QMD="/app/scripts/setup-qmd.sh"
+CONFIG_FILE="${HOME}/.openclaw/openclaw.json"
 
 # ── First-launch setup (QMD, runs once) ──────────────────
 if [ ! -f "$SETUP_MARKER" ]; then
@@ -28,6 +29,12 @@ fi
 PHICLAW_WORKSPACE_INIT="/app/scripts/phiclaw-workspace-init.sh"
 if [ -x "$PHICLAW_WORKSPACE_INIT" ]; then
     bash "$PHICLAW_WORKSPACE_INIT" 2>&1 || echo "[phiclaw] Workspace init had warnings (non-fatal)"
+fi
+
+# ── Ensure bootstrapMaxChars is high enough for AGENTS.md ──
+# The agent catalog is ~25KB; OpenClaw default is 20000 which truncates it.
+if [ -f "$CONFIG_FILE" ] && command -v node >/dev/null 2>&1; then
+    node /app/scripts/patch-bootstrap-limit.cjs "$CONFIG_FILE" 2>&1 || true
 fi
 
 # ── Start gateway ──
