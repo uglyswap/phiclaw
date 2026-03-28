@@ -39,7 +39,7 @@ COPY scripts ./scripts
 COPY extensions/ ./extensions/
 COPY packages/ ./packages/
 
-RUN NODE_OPTIONS=--max-old-space-size=2048 pnpm install --frozen-lockfile
+RUN NODE_OPTIONS=--max-old-space-size=2048 pnpm install --no-frozen-lockfile
 
 COPY . .
 RUN OPENCLAW_A2UI_SKIP_MISSING=1 pnpm build
